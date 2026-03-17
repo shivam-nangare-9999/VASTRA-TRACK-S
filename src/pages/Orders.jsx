@@ -577,11 +577,10 @@ setSaving(false)
                           const val = orderMeasurements[order.id][key]
                           if (!val) return null
                           return (
-                            <div key={key}
-                              className="bg-stone-900 border border-stone-700 rounded-xl p-3 text-center">
-                              <p className="text-stone-500 text-xs mb-1">{t.measurements[key] || label}</p>
-                              <p className="text-white font-bold text-xl">{val}"</p>
-                              <p className="text-stone-600 text-xs">{t.measurements.inches}</p>
+                            <div key={key} className={`rounded-xl p-3 text-center border ${theme === 'dark' ? 'bg-stone-900 border-stone-700' : 'bg-white border-stone-200'}`}>
+                              <p className={`text-xs mb-1 ${theme === 'dark' ? 'text-stone-500' : 'text-stone-600'}`}>{t.measurements[key] || label}</p>
+                              <p className={`font-bold text-xl ${theme === 'dark' ? 'text-white' : 'text-stone-900'}`}>{val}"</p>
+                              <p className={`text-xs ${theme === 'dark' ? 'text-stone-600' : 'text-stone-500'}`}>{t.measurements.inches}</p>
                             </div>
                           )
                         })}

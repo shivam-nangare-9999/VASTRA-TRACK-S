@@ -1,144 +1,183 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { 
-  LayoutDashboard, Users, ShoppingBag, 
-  Receipt, UserCog, Menu, X, LogOut, Scissors, Sun, Moon, Languages, Settings 
+  LayoutDashboard, Users, ShoppingBag, ReceiptText, 
+  UserCog, Settings, LogOut, Menu, X, Sun, Moon, Check, Globe
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { translations } from '../lib/translations'
 
 export default function Sidebar({ session, theme, setTheme, lang, setLang, profile }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [showLangMenu, setShowLangMenu] = useState(false)
   const location = useLocation()
-  const t = translations[lang]
 
   const navItems = [
-    { name: t.dashboard, path: '/', icon: LayoutDashboard },
-    { name: t.customers, path: '/customers', icon: Users },
-    { name: t.orders, path: '/orders', icon: ShoppingBag },
-    { name: t.billing, path: '/billing', icon: Receipt },
-    { name: t.workers, path: '/workers', icon: UserCog },
-    { name: t.settings, path: '/settings', icon: Settings },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Customers', path: '/customers', icon: Users },
+    { name: 'Orders', path: '/orders', icon: ShoppingBag },
+    { name: 'Billing', path: '/billing', icon: ReceiptText },
+    { name: 'Workers', path: '/workers', icon: UserCog },
   ]
 
-  const toggle = () => setIsOpen(!isOpen)
+  const handleLogout = () => supabase.auth.signOut()
 
   return (
     <>
-      {/* Mobile Top Navigation Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-[#0d0d1a] border-b border-stone-200 dark:border-white/5 sticky top-0 z-50 transition-colors">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-[#0d0d1a] border-b border-stone-200 dark:border-stone-800 sticky top-0 z-50 transition-colors">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center overflow-hidden">
-            {profile?.logo_url ? (
-              <img src={profile.logo_url} alt="L" className="w-full h-full object-cover" />
-            ) : (
-            <Scissors size={20} className="text-stone-950" />
-            )}
+          <div className="p-2 bg-amber-500 rounded-lg shadow-lg shadow-amber-500/20">
+            <ShoppingBag size={20} color="white" />
           </div>
-          <span className="font-black text-stone-950 dark:text-white tracking-tight font-['Syne'] uppercase">
-            {profile?.brand_name || 'VASTRA'}
-          </span>
+          <span className="font-syne font-black text-stone-900 dark:text-white">Vastra Track</span>
         </div>
         <button 
-          onClick={toggle} 
-          className="p-2 text-stone-400 hover:text-white transition-colors focus:outline-none"
-          aria-label="Toggle Menu"
+          onClick={() => setIsOpen(!isOpen)} 
+          className="p-2 rounded-xl bg-stone-100 dark:bg-white/5 text-stone-600 dark:text-stone-400"
         >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
+          {isOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-40 md:hidden transition-opacity"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-0 z-40 w-full bg-white dark:bg-[#0d0d1a] border-b dark:border-b-0 border-stone-200 dark:border-white/5 
-        transform transition-transform duration-300 ease-in-out 
-        md:relative md:inset-y-0 md:left-0 md:w-64 md:border-r border-stone-200 dark:border-white/5 md:border-b-0 md:translate-y-0 md:translate-x-0
-        ${isOpen ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}
-        flex flex-col pt-20 md:pt-0 overflow-y-auto
+        fixed md:static inset-y-0 left-0 z-50 w-72 
+        bg-white dark:bg-[#0d0d1a] 
+        border-r border-stone-200 dark:border-stone-800
+        transition-all duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        flex flex-col shadow-2xl md:shadow-none
       `}>
-        {/* Desktop Logo Branding */}
-        <div className="hidden md:flex items-center gap-3 p-8 transition-colors">
-          <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-            {profile?.logo_url ? (
-              <img src={profile.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-            <Scissors size={24} className="text-stone-950" />
-            )}
+        {/* Brand Logo */}
+        <div className="p-8 hidden md:flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl shadow-xl shadow-amber-500/30">
+            <ShoppingBag size={24} color="white" strokeWidth={2.5} />
           </div>
-          <div>
-            <h1 className="font-black text-xl text-stone-900 dark:text-white tracking-tight leading-none font-['Syne'] uppercase">
-              {profile?.brand_name || 'VASTRA'}
-            </h1>
-            <p className="text-[10px] text-amber-500/50 font-bold uppercase tracking-widest mt-1">Track</p>
-          </div>
+          <h1 className="font-syne text-xl font-black tracking-tight text-stone-900 dark:text-white">
+            Vastra Track
+          </h1>
         </div>
 
-        {/* Main Navigation Links */}
-        <nav className="flex-1 px-4 py-4 md:py-0 space-y-1">
+        {/* Nav Links */}
+        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const Icon = item.icon
             const isActive = location.pathname === item.path
             return (
               <Link
-                key={item.name}
+                key={item.path}
                 to={item.path}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 group
                   ${isActive 
-                    ? 'bg-amber-500/10 text-amber-500 shadow-[inset_0_0_12px_rgba(245,158,11,0.05)]' 
-                    : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-white/5'}`}
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-500 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.2)]' 
+                    : 'text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-white'}
+                `}
               >
-                <Icon size={20} />
+                <item.icon 
+                  size={20} 
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={`transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
+                />
                 {item.name}
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]" />
+                )}
               </Link>
             )
           })}
         </nav>
 
-        {/* Language Switcher */}
-        <div className="px-4 py-2">
-          <div className="flex items-center gap-3 px-4 py-2 rounded-xl text-stone-500">
-            <Languages size={18} />
-            <select 
-              value={lang} 
-              onChange={(e) => setLang(e.target.value)}
-              className="bg-transparent border-none text-sm font-bold focus:outline-none cursor-pointer text-stone-500 hover:text-stone-900 dark:hover:text-stone-300"
+        {/* Bottom Panel */}
+        <div className="p-4 bg-stone-50/50 dark:bg-black/20 border-t border-stone-200 dark:border-white/5 space-y-4">
+          {/* Toggles */}
+          <div className="grid grid-cols-2 gap-2">
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="h-10 flex items-center justify-center gap-2 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 text-stone-600 dark:text-stone-400 hover:border-amber-500/50 hover:text-amber-500 transition-all shadow-sm"
             >
-              <option value="en">English</option>
-              <option value="hi">हिंदी</option>
-              <option value="mr">मराठी</option>
-            </select>
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+              <span className="text-[10px] font-black uppercase tracking-wider">{theme}</span>
+            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowLangMenu(!showLangMenu)}
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 text-stone-600 dark:text-stone-400 hover:border-amber-500/50 hover:text-amber-500 transition-all shadow-sm"
+              >
+                <Globe size={14} className="opacity-50" />
+                <span className="text-base leading-none">
+                  {lang === 'en' ? '🇺🇸' : '🇮🇳'}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider leading-none">{lang}</span>
+              </button>
+              
+              {showLangMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowLangMenu(false)} />
+                  <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-[#0d0d1a] border border-stone-200 dark:border-stone-800 rounded-2xl shadow-2xl overflow-hidden z-50">
+                    {[
+                      { id: 'en', name: 'English', flag: '🇺🇸' },
+                      { id: 'hi', name: 'हिंदी', flag: '🇮🇳' },
+                      { id: 'mr', name: 'मराठी', flag: '🇮🇳' }
+                    ].map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => {
+                          setLang(l.id);
+                          setShowLangMenu(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 hover:bg-amber-500/10 hover:text-amber-500 ${lang === l.id ? 'text-amber-500 bg-amber-500/5' : 'text-stone-500 dark:text-stone-400'}`}
+                      >
+                        <span className="text-sm">{l.flag}</span>
+                        <span className="flex-1">{l.name}</span>
+                        {lang === l.id && <Check size={14} className="text-amber-500" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Theme Toggle Button */}
-        <div className="px-4 py-2">
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold text-sm text-stone-500 hover:text-stone-900 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-white/5 transition-all"
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          </button>
-        </div>
-
-        {/* Bottom Logout Section */}
-        <div className="p-4 border-t border-stone-200 dark:border-white/5">
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold text-sm text-red-400/80 hover:text-red-400 hover:bg-red-400/5 transition-all"
-          >
-            <LogOut size={20} />
-            {t.logout}
-          </button>
+          {/* User Profile */}
+          <div className="p-4 rounded-[24px] bg-white/50 dark:bg-white/[0.03] border border-stone-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center font-black text-white shadow-xl shadow-amber-500/20 transform group-hover:scale-105 transition-transform">
+                {(profile?.brand_name || session?.user?.email)?.[0].toUpperCase() || 'V'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black truncate text-stone-900 dark:text-white leading-tight">
+                  {profile?.brand_name || 'My Brand'}
+                </p>
+                <p className="text-[10px] font-medium text-stone-500 truncate leading-tight mt-0.5">
+                  {session?.user?.email}
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/settings"
+              onClick={() => setIsOpen(false)}
+              className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-stone-600 dark:text-stone-400 bg-stone-500/5 hover:bg-stone-500/10 border border-stone-500/10 transition-all text-[10px] font-black uppercase tracking-widest mb-2"
+            >
+              <Settings size={14} />
+              Settings
+            </Link>
+            <button 
+              onClick={handleLogout}
+              className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-red-500 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all text-[10px] font-black uppercase tracking-widest"
+            >
+              <LogOut size={14} />
+              Sign Out
+            </button>
+          </div>
         </div>
       </aside>
     </>

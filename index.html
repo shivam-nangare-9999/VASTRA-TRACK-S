@@ -7,6 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&display=swap" rel="stylesheet">
     <meta name="description" content="Vastra Track - Professional Tailor Management System for Indian Clothing Brands." />
     <title>Vastra Track — Tailor Management</title>
+    <script>
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

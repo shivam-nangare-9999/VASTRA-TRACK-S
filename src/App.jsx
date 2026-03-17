@@ -14,7 +14,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null)
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark')
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light')
   const [lang, setLang] = useState(localStorage.getItem('lang') || 'en')
 
   useEffect(() => {
@@ -59,7 +59,7 @@ function App() {
 
   if (loading) return (
     <div style={{
-      minHeight: '100vh', background: '#080810',
+      minHeight: '100vh', background: theme === 'dark' ? '#080810' : '#f8fafc',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{ fontFamily: 'Syne, sans-serif', color: '#f59e0b', fontSize: '18px', fontWeight: 700 }}>
@@ -78,10 +78,10 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex flex-col md:flex-row min-h-screen bg-stone-50 dark:bg-[#080810] text-stone-900 dark:text-[#e2e8f0] transition-colors duration-300">
+      <div className="flex flex-col md:flex-row min-h-screen bg-[#f8fafc] dark:bg-[#080810] text-stone-900 dark:text-[#e2e8f0] transition-colors duration-300">
         <Sidebar session={session} theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} profile={profile} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8" style={{
-          background: theme === 'dark' ? 'radial-gradient(ellipse at 80% 0%, rgba(245,158,11,0.04), transparent 60%), #080810' : 'radial-gradient(ellipse at 80% 0%, rgba(245,158,11,0.02), transparent 60%), #f8fafc',
+        <main className="flex-1 relative overflow-y-auto p-4 md:p-10" style={{
+          background: theme === 'dark' ? 'radial-gradient(circle at 100% 0%, rgba(245,158,11,0.05), transparent 50%), #080810' : 'radial-gradient(circle at 100% 0%, rgba(245,158,11,0.03), transparent 50%), #f8fafc',
         }}>
           <Routes>
             <Route path="/" element={<Dashboard theme={theme} lang={lang} />} />
