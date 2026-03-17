@@ -254,31 +254,16 @@ export default function Dashboard({ theme, lang }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {statCards.map(({ label, value, icon: Icon, color, glow, action, actionLabel }) => (
           <div
+            className="group transition-all duration-300 ease-in-out cursor-pointer hover:-translate-y-1.5"
             key={label}
             onClick={action}
             style={{
               background: theme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : '#ffffff',
               backdropFilter: 'blur(16px)',
-              display: 'flex',
-              flexDirection: 'column',
               border: `1px solid ${cardBorder}`,
               borderRadius: '28px',
               padding: '24px',
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-              cursor: 'pointer',
               boxShadow: theme === 'dark' ? '0 10px 30px -10px rgba(0, 0, 0, 0.5)' : '0 10px 30px -10px rgba(0, 0, 0, 0.04)',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-6px)'
-              e.currentTarget.style.borderColor = color
-              e.currentTarget.style.boxShadow = theme === 'dark' ? `0 20px 40px -10px ${color}33` : `0 15px 30px -10px ${color}22`
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.borderColor = cardBorder
-              e.currentTarget.style.boxShadow = theme === 'dark' ? '0 10px 30px -10px rgba(0, 0, 0, 0.5)' : '0 10px 30px -10px rgba(0, 0, 0, 0.04)'
             }}
           >
             {/* Background glow */}
