@@ -118,7 +118,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
           {['login', 'signup'].map(m => (
             <button key={m} onClick={() => { setMode(m); setError('') }} style={{
               flex: 1,
-              background: mode === m ? (theme === 'dark' ? 'rgba(245,158,11,0.15)' : '#ffffff') : 'transparent',
+              background: mode === m ? (theme === 'dark' ? 'rgba(245,158,11,0.15)' : '#ffffff') : 'rgba(0,0,0,0.02)',
               border: '1px solid transparent',
               borderColor: mode === m ? (theme === 'dark' ? 'rgba(245,158,11,0.3)' : '#e2e8f0') : 'transparent',
               borderRadius: '10px', padding: '10px',
@@ -219,7 +219,14 @@ export default function Login({ theme, setTheme, lang, setLang }) {
               transform: btnHover && !loading ? 'translateY(-2px)' : 'none',
               boxShadow: btnHover && !loading ? '0 15px 30px -5px rgba(245, 158, 11, 0.5)' : (!loading ? '0 10px 20px -5px rgba(245, 158, 11, 0.4)' : 'none'),
             }}>
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In →' : 'Create Account →'}
+            {loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <div style={{ width: '16px', height: '16px', border: '2px solid rgba(0,0,0,0.1)', borderTopColor: 'currentColor', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span>Processing...</span>
+              </div>
+            ) : (
+              mode === 'login' ? 'Sign In →' : 'Create Account →'
+            )}
           </button>
         </div>
 

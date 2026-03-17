@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Users, ShoppingBag, Clock, CheckCircle, AlertCircle, TrendingUp, ArrowUpRight, X, Plus, UserPlus, UserCog } from 'lucide-react'
+import { Users, ShoppingBag, Clock, CheckCircle, AlertCircle, TrendingUp, ArrowUpRight, X, Plus, UserPlus, UserCog, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { translations } from '../lib/translations'
 
 export default function Dashboard({ theme, lang }) {
   const navigate = useNavigate()
-  const t = translations[lang]
+  const t = translations[lang] || translations['en'] || {}
   const [stats, setStats] = useState({
     totalCustomers: 0, totalOrders: 0,
     pendingOrders: 0, readyOrders: 0,
@@ -15,8 +15,8 @@ export default function Dashboard({ theme, lang }) {
   const [recentOrders, setRecentOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Modal state
-  const [modal, setModal] = useState(null) // 'orders' | 'pending' | 'ready' | 'revenue' | 'pendingPayments'
+  // Modal
+  const [modal, setModal] = useState(null) 
   const [modalData, setModalData] = useState([])
   const [modalLoading, setModalLoading] = useState(false)
 
@@ -64,45 +64,19 @@ export default function Dashboard({ theme, lang }) {
     setModalLoading(true)
     setModalData([])
 
-    if (type === 'orders') {
-      const { data } = await supabase
-        .from('orders')
-        .select('*, customers(name, phone)')
-        .order('created_at', { ascending: false })
-      setModalData(data || [])
+    let query = supabase.from('orders').select('*, customers(name, phone)')
+    
+    if (type === 'pending') query = query.eq('status', 'Pending')
+    else if (type === 'ready') query = query.eq('status', 'Ready')
+    else if (type === 'revenue') query = query.order('total_price', { ascending: false })
 
-    } else if (type === 'pending') {
-      const { data } = await supabase
-        .from('orders')
-        .select('*, customers(name, phone)')
-        .eq('status', 'Pending')
-        .order('created_at', { ascending: false })
-      setModalData(data || [])
-
-    } else if (type === 'ready') {
-      const { data } = await supabase
-        .from('orders')
-        .select('*, customers(name, phone)')
-        .eq('status', 'Ready')
-        .order('created_at', { ascending: false })
-      setModalData(data || [])
-
-    } else if (type === 'revenue') {
-      const { data } = await supabase
-        .from('orders')
-        .select('*, customers(name, phone)')
-        .order('total_price', { ascending: false })
-      setModalData(data || [])
-
-    } else if (type === 'pendingPayments') {
-      const { data } = await supabase
-        .from('orders')
-        .select('*, customers(name, phone)')
-        .order('created_at', { ascending: false })
-      // Only show orders with balance remaining
+    const { data } = await query.order('created_at', { ascending: false })
+    
+    if (type === 'pendingPayments') {
       setModalData((data || []).filter(o => o.total_price > o.advance_paid))
+    } else {
+      setModalData(data || [])
     }
-
     setModalLoading(false)
   }
 
