@@ -9,6 +9,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [btnHover, setBtnHover] = useState(false)
 
   async function handleLogin() {
     if (!form.email || !form.password) return setError('Please fill all fields')
@@ -203,6 +204,8 @@ export default function Login({ theme, setTheme, lang, setLang }) {
           <button
             onClick={mode === 'login' ? handleLogin : handleSignup}
             disabled={loading}
+            onMouseEnter={() => setBtnHover(true)}
+            onMouseLeave={() => setBtnHover(false)}
             style={{
               width: '100%',
               background: loading ? 'rgba(245,158,11,0.3)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
@@ -211,8 +214,10 @@ export default function Login({ theme, setTheme, lang, setLang }) {
               fontWeight: 800, fontSize: '15px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'Syne, sans-serif',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', marginTop: '4px',
-              boxShadow: !loading ? '0 10px 20px -5px rgba(245, 158, 11, 0.4)' : 'none',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              marginTop: '4px',
+              transform: btnHover && !loading ? 'translateY(-2px)' : 'none',
+              boxShadow: btnHover && !loading ? '0 15px 30px -5px rgba(245, 158, 11, 0.5)' : (!loading ? '0 10px 20px -5px rgba(245, 158, 11, 0.4)' : 'none'),
             }}>
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign In →' : 'Create Account →'}
           </button>
