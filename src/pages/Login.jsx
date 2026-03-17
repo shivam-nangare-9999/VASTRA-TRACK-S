@@ -45,13 +45,15 @@ export default function Login({ theme, setTheme, lang, setLang }) {
 
   const inputStyle = {
     width: '100%',
-    background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#ffffff',
-    border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
-    borderRadius: '14px',
-    color: theme === 'dark' ? 'white' : '#0f172a',
+    background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+    border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+    borderRadius: '16px',
+    color: theme === 'dark' ? '#f8fafc' : '#0f172a',
     fontSize: '14px',
+    padding: '14px 16px',
     outline: 'none',
     boxSizing: 'border-box',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
   }
 
   return (
@@ -66,34 +68,35 @@ export default function Login({ theme, setTheme, lang, setLang }) {
     }}>
       <div style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: `radial-gradient(ellipse at 50% 0%, rgba(245,158,11,${theme === 'dark' ? '0.08' : '0.04'}), transparent 60%)`,
+        background: `radial-gradient(circle at 50% -20%, rgba(245,158,11,${theme === 'dark' ? '0.15' : '0.08'}), transparent 70%)`,
         pointerEvents: 'none',
       }} />
 
       {/* Theme Toggle in Login */}
       <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        style={{ position: 'fixed', top: '24px', right: '24px', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer' }}
+        style={{ position: 'fixed', top: '24px', right: '24px', background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'white', border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, borderRadius: '12px', padding: '10px', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', zIndex: 50 }}
       >
         {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
       </button>
 
       <div style={{
         width: '100%', maxWidth: '440px',
-        background: theme === 'dark' ? 'linear-gradient(135deg, #0d0d1a, #111122)' : '#ffffff',
+        background: theme === 'dark' ? 'rgba(13, 13, 26, 0.8)' : '#ffffff',
+        backdropFilter: 'blur(12px)',
         border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
-        borderRadius: '28px',
-        padding: '40px',
-        position: 'relative',
-        boxShadow: theme === 'dark' ? 'none' : '0 10px 25px -5px rgba(0,0,0,0.05)',
+        borderRadius: '32px',
+        padding: '48px 40px',
+        position: 'relative', zIndex: 1,
+        boxShadow: theme === 'dark' ? '0 25px 50px -12px rgba(0,0,0,0.5)' : '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             display: 'inline-flex',
-            background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
             padding: '16px', borderRadius: '20px', marginBottom: '16px',
-            boxShadow: '0 0 30px rgba(245,158,11,0.3)',
+            boxShadow: theme === 'dark' ? '0 0 40px rgba(245,158,11,0.2)' : '0 10px 15px -3px rgba(245,158,11,0.3)',
           }}>
-            <Scissors size={28} color="#0d0d1a" strokeWidth={2.5} />
+            <Scissors size={28} color="#1e1b4b" strokeWidth={2.5} />
           </div>
           <h1 style={{
             fontFamily: 'Syne, sans-serif',
@@ -107,20 +110,22 @@ export default function Login({ theme, setTheme, lang, setLang }) {
 
         {/* Toggle */}
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : '#f1f5f9',
           borderRadius: '14px', padding: '4px', marginBottom: '24px',
           display: 'flex', gap: '4px'
         }}>
           {['login', 'signup'].map(m => (
             <button key={m} onClick={() => { setMode(m); setError('') }} style={{
               flex: 1,
-              background: mode === m ? 'rgba(245,158,11,0.2)' : 'transparent',
-              border: mode === m ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
+              background: mode === m ? (theme === 'dark' ? 'rgba(245,158,11,0.15)' : '#ffffff') : 'transparent',
+              border: '1px solid transparent',
+              borderColor: mode === m ? (theme === 'dark' ? 'rgba(245,158,11,0.3)' : '#e2e8f0') : 'transparent',
               borderRadius: '10px', padding: '10px',
-              color: mode === m ? '#f59e0b' : '#475569',
+              color: mode === m ? (theme === 'dark' ? '#fbbf24' : '#f59e0b') : '#64748b',
               fontWeight: 700, fontSize: '14px',
-              cursor: 'pointer', transition: 'all 0.2s',
+              cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               fontFamily: 'Inter, sans-serif',
+              boxShadow: mode === m && theme !== 'dark' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
             }}>
               {m === 'login' ? '🔑 Sign In' : '✨ Sign Up'}
             </button>
@@ -139,7 +144,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
                 onChange={e => setForm({...form, brand_name: e.target.value})}
                 style={inputStyle}
                 onFocus={e => e.target.style.borderColor = '#f59e0b'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                onBlur={e => e.target.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
               />
             </div>
           )}
@@ -153,7 +158,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
               onChange={e => setForm({...form, email: e.target.value})}
               style={inputStyle}
               onFocus={e => e.target.style.borderColor = '#f59e0b'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              onBlur={e => e.target.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
             />
           </div>
 
@@ -170,7 +175,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
                 onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleSignup())}
                 style={{ ...inputStyle, paddingRight: '48px' }}
                 onFocus={e => e.target.style.borderColor = '#f59e0b'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                onBlur={e => e.target.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
               />
               <button onClick={() => setShowPass(!showPass)} style={{
                 position: 'absolute', right: '14px', top: '50%',
@@ -200,13 +205,14 @@ export default function Login({ theme, setTheme, lang, setLang }) {
             disabled={loading}
             style={{
               width: '100%',
-              background: loading ? 'rgba(245,158,11,0.3)' : 'linear-gradient(135deg, #f59e0b, #ef4444)',
+              background: loading ? 'rgba(245,158,11,0.3)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
               border: 'none', borderRadius: '14px', padding: '15px',
-              color: loading ? '#64748b' : '#0d0d1a',
+              color: loading ? '#64748b' : '#1e1b4b',
               fontWeight: 800, fontSize: '15px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'Syne, sans-serif',
-              transition: 'opacity 0.2s', marginTop: '4px',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', marginTop: '4px',
+              boxShadow: !loading ? '0 10px 20px -5px rgba(245, 158, 11, 0.4)' : 'none',
             }}>
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign In →' : 'Create Account →'}
           </button>
