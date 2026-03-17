@@ -264,8 +264,6 @@ export default function Dashboard({ theme, lang }) {
               border: `1px solid ${cardBorder}`,
               borderRadius: '28px',
               padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
               position: 'relative',
               overflow: 'hidden',
               transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
