@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { phone, customerName, status, itemName } = await req.json()
+    const { phone, customerName, status, itemName, customMessage } = await req.json()
 
     const accountSid = Deno.env.get('TWILIO_SID')
     const authToken = Deno.env.get('TWILIO_TOKEN')
@@ -33,7 +33,12 @@ Deno.serve(async (req) => {
       'Delivered': `Dear ${customerName}, your ${itemName} has been delivered. Thank you for choosing us! - Vastra Track`,
     }
 
-    const message = messages[status] || `Dear ${customerName}, your order status has been updated to: ${status}`
+    let message = ''
+    if (customMessage) {
+      message = customMessage.replace('{name}', customerName)
+    } else {
+      message = messages[status] || `Dear ${customerName}, your order status has been updated to: ${status}`
+    }
 
     let formattedPhone = phone.toString().replace(/\D/g, '')
     if (formattedPhone.length === 10) {

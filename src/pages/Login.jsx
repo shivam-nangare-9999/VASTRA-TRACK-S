@@ -23,6 +23,11 @@ export default function Login({ theme, setTheme, lang, setLang }) {
     setLoading(false)
   }
 
+  async function handleSubmit() {
+    if (mode === 'signup') handleSignup()
+    else handleLogin()
+  }
+
   async function handleSignup() {
     if (!form.brand_name) return setError('Please enter your brand name')
     if (!form.email || !form.password) return setError('Please fill all fields')
@@ -101,7 +106,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
           </div>
           <h1 style={{
             fontFamily: 'Syne, sans-serif',
-            fontSize: '28px', fontWeight: 900,
+            fontSize: '28px', fontWeight: 700,
             color: theme === 'dark' ? 'white' : '#0f172a', margin: '0 0 4px', letterSpacing: '-0.5px',
           }}>Vastra Track</h1>
           <p style={{ color: '#475569', fontSize: '14px', margin: 0 }}>
@@ -109,7 +114,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
           </p>
         </div>
 
-        {/* Toggle */}
+        {/* Auth Modes toggle */}
         <div style={{
           background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : '#f1f5f9',
           borderRadius: '14px', padding: '4px', marginBottom: '24px',
@@ -123,7 +128,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
               borderColor: mode === m ? (theme === 'dark' ? 'rgba(245,158,11,0.3)' : '#e2e8f0') : 'transparent',
               borderRadius: '10px', padding: '10px',
               color: mode === m ? (theme === 'dark' ? '#fbbf24' : '#f59e0b') : '#64748b',
-              fontWeight: 700, fontSize: '14px',
+              fontWeight: 600, fontSize: '14px',
               cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               fontFamily: 'Inter, sans-serif',
               boxShadow: mode === m && theme !== 'dark' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
@@ -135,9 +140,10 @@ export default function Login({ theme, setTheme, lang, setLang }) {
 
         {/* Fields */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          
           {mode === 'signup' && (
             <div>
-              <label style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
+              <label style={{ color: '#64748b', fontSize: '12px', fontWeight: 500, display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
                 BRAND NAME
               </label>
               <input type="text" placeholder="Cotton King, Tizer..."
@@ -150,45 +156,47 @@ export default function Login({ theme, setTheme, lang, setLang }) {
             </div>
           )}
 
-          <div>
-            <label style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
-              EMAIL
-            </label>
-            <input type="email" placeholder="brand@email.com"
-              value={form.email}
-              onChange={e => setForm({...form, email: e.target.value})}
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = '#f59e0b'}
-              onBlur={e => e.target.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
-            />
-          </div>
-
-          <div>
-            <label style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
-              PASSWORD
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPass ? 'text' : 'password'}
-                placeholder="Min 6 characters"
-                value={form.password}
-                onChange={e => setForm({...form, password: e.target.value})}
-                onKeyDown={e => e.key === 'Enter' && (mode === 'login' ? handleLogin() : handleSignup())}
-                style={{ ...inputStyle, paddingRight: '48px' }}
+          <>
+            <div>
+              <label style={{ color: '#64748b', fontSize: '12px', fontWeight: 500, display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                EMAIL
+              </label>
+              <input type="email" placeholder="brand@email.com"
+                value={form.email}
+                onChange={e => setForm({...form, email: e.target.value})}
+                style={inputStyle}
                 onFocus={e => e.target.style.borderColor = '#f59e0b'}
                 onBlur={e => e.target.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
               />
-              <button onClick={() => setShowPass(!showPass)} style={{
-                position: 'absolute', right: '14px', top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none', border: 'none',
-                color: '#475569', cursor: 'pointer',
-                display: 'flex', alignItems: 'center',
-              }}>
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
             </div>
-          </div>
+
+            <div>
+              <label style={{ color: '#64748b', fontSize: '12px', fontWeight: 500, display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                PASSWORD
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  placeholder="Min 6 characters"
+                  value={form.password}
+                  onChange={e => setForm({...form, password: e.target.value})}
+                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                  style={{ ...inputStyle, paddingRight: '48px' }}
+                  onFocus={e => e.target.style.borderColor = '#f59e0b'}
+                  onBlur={e => e.target.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}
+                />
+                <button onClick={() => setShowPass(!showPass)} style={{
+                  position: 'absolute', right: '14px', top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none', border: 'none',
+                  color: '#475569', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center',
+                }}>
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          </>
 
           {error && (
             <div style={{
@@ -202,7 +210,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
           )}
 
           <button
-            onClick={mode === 'login' ? handleLogin : handleSignup}
+            onClick={handleSubmit}
             disabled={loading}
             onMouseEnter={() => setBtnHover(true)}
             onMouseLeave={() => setBtnHover(false)}
@@ -211,7 +219,7 @@ export default function Login({ theme, setTheme, lang, setLang }) {
               background: loading ? 'rgba(245,158,11,0.3)' : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
               border: 'none', borderRadius: '14px', padding: '15px',
               color: loading ? '#64748b' : '#1e1b4b',
-              fontWeight: 800, fontSize: '15px',
+              fontWeight: 600, fontSize: '15px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily: 'Syne, sans-serif',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, Users, ShoppingBag, ReceiptText, 
-  UserCog, Settings, LogOut, Menu, X, Sun, Moon, Check, Globe
+  UserCog, Package, Settings, LogOut, Menu, X, Sun, Moon, Check, Globe
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -11,13 +11,22 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
   const [showLangMenu, setShowLangMenu] = useState(false)
   const location = useLocation()
 
-  const navItems = [
+  // Determine base nav items
+  let navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Customers', path: '/customers', icon: Users },
     { name: 'Orders', path: '/orders', icon: ShoppingBag },
     { name: 'Billing', path: '/billing', icon: ReceiptText },
     { name: 'Workers', path: '/workers', icon: UserCog },
-  ]
+    { name: 'Inventory', path: '/inventory', icon: Package },
+  ];
+
+  // Apply RBAC filters if the profile has a specific role set
+  if (profile?.role === 'cutter' || profile?.role === 'worker') {
+    navItems = navItems.filter(item => ['Orders', 'Customers'].includes(item.name));
+  } else if (profile?.role === 'cashier') {
+    navItems = navItems.filter(item => ['Dashboard', 'Billing', 'Orders', 'Customers'].includes(item.name));
+  }
 
   const handleLogout = () => supabase.auth.signOut()
 
@@ -26,10 +35,18 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white dark:bg-[#0d0d1a] border-b border-stone-200 dark:border-stone-800 sticky top-0 z-50 transition-colors">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-amber-500 rounded-lg shadow-lg shadow-amber-500/20">
-            <ShoppingBag size={20} color="white" />
-          </div>
-          <span className="font-syne font-black text-stone-900 dark:text-white">Vastra Track</span>
+          {profile?.logo_url ? (
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg overflow-hidden bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 flex items-center justify-center">
+              <img src={profile.logo_url} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 flex-shrink-0 bg-amber-500 rounded-lg shadow-lg shadow-amber-500/20 flex items-center justify-center">
+              <ShoppingBag size={18} color="white" />
+            </div>
+          )}
+          <span className="font-syne font-bold text-stone-900 dark:text-white max-w-[200px] truncate">
+            {profile?.brand_name?.trim() || 'Vastra Track'}
+          </span>
         </div>
         <button 
           onClick={() => setIsOpen(!isOpen)} 
@@ -58,11 +75,17 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
       `}>
         {/* Brand Logo */}
         <div className="p-8 hidden md:flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl shadow-xl shadow-amber-500/30">
-            <ShoppingBag size={24} color="white" strokeWidth={2.5} />
-          </div>
-          <h1 className="font-syne text-xl font-black tracking-tight text-stone-900 dark:text-white">
-            Vastra Track
+          {profile?.logo_url ? (
+            <div className="w-10 h-10 flex-shrink-0 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 flex items-center justify-center">
+              <img src={profile.logo_url} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-10 h-10 flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-600 rounded-xl shadow-xl shadow-amber-500/30 flex items-center justify-center">
+              <ShoppingBag size={22} color="white" strokeWidth={2.5} />
+            </div>
+          )}
+          <h1 className="font-syne text-xl font-bold tracking-tight text-stone-900 dark:text-white truncate">
+            {profile?.brand_name?.trim() || 'Vastra Track'}
           </h1>
         </div>
 
@@ -105,7 +128,7 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
               className="h-10 flex items-center justify-center gap-2 rounded-xl bg-white dark:bg-white/5 border border-stone-200 dark:border-white/10 text-stone-600 dark:text-stone-400 hover:border-amber-500/50 hover:text-amber-500 transition-all shadow-sm"
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-              <span className="text-[10px] font-black uppercase tracking-wider">{theme}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{theme}</span>
             </button>
             <div className="relative">
               <button 
@@ -116,7 +139,7 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
                 <span className="text-base leading-none">
                   {lang === 'en' ? '🇺🇸' : '🇮🇳'}
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-wider leading-none">{lang}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider leading-none">{lang}</span>
               </button>
               
               {showLangMenu && (
@@ -134,7 +157,7 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
                           setLang(l.id);
                           setShowLangMenu(false);
                         }}
-                        className={`w-full px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 hover:bg-amber-500/10 hover:text-amber-500 ${lang === l.id ? 'text-amber-500 bg-amber-500/5' : 'text-stone-500 dark:text-stone-400'}`}
+                        className={`w-full px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-3 hover:bg-amber-500/10 hover:text-amber-500 ${lang === l.id ? 'text-amber-500 bg-amber-500/5' : 'text-stone-500 dark:text-stone-400'}`}
                       >
                         <span className="text-sm">{l.flag}</span>
                         <span className="flex-1">{l.name}</span>
@@ -150,11 +173,15 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
           {/* User Profile */}
           <div className="p-4 rounded-[24px] bg-white/50 dark:bg-white/[0.03] border border-stone-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all group">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center font-black text-white shadow-xl shadow-amber-500/20 transform group-hover:scale-105 transition-transform">
-                {(profile?.brand_name || session?.user?.email)?.[0].toUpperCase() || 'V'}
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold transform group-hover:scale-105 transition-transform overflow-hidden ${profile?.logo_url ? 'bg-white dark:bg-[#0d0d1a] border border-stone-200 dark:border-stone-800 shadow-sm' : 'bg-gradient-to-tr from-amber-500 to-orange-600 text-white shadow-xl shadow-amber-500/20'}`}>
+                {profile?.logo_url ? (
+                  <img src={profile.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  (profile?.brand_name || session?.user?.email)?.[0].toUpperCase() || 'V'
+                )}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-black truncate text-stone-900 dark:text-white leading-tight">
+                <p className="text-sm font-bold truncate text-stone-900 dark:text-white leading-tight">
                   {profile?.brand_name || 'My Brand'}
                 </p>
                 <p className="text-[10px] font-medium text-stone-500 truncate leading-tight mt-0.5">
@@ -162,17 +189,19 @@ export default function Sidebar({ session, theme, setTheme, lang, setLang, profi
                 </p>
               </div>
             </div>
-            <Link
-              to="/settings"
-              onClick={() => setIsOpen(false)}
-              className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-stone-600 dark:text-stone-400 bg-stone-500/5 hover:bg-stone-500/10 border border-stone-500/10 transition-all text-[10px] font-black uppercase tracking-widest mb-2"
-            >
-              <Settings size={14} />
-              Settings
-            </Link>
+            {profile?.role === 'owner' && (
+              <Link
+                to="/settings"
+                onClick={() => setIsOpen(false)}
+                className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-stone-600 dark:text-stone-400 bg-stone-500/5 hover:bg-stone-500/10 border border-stone-500/10 transition-all text-[10px] font-bold uppercase tracking-widest mb-2"
+              >
+                <Settings size={14} />
+                Settings
+              </Link>
+            )}
             <button 
               onClick={handleLogout}
-              className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-red-500 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all text-[10px] font-black uppercase tracking-widest"
+              className="w-full h-10 flex items-center justify-center gap-2 rounded-xl text-red-500 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/20 transition-all text-[10px] font-bold uppercase tracking-widest"
             >
               <LogOut size={14} />
               Sign Out

@@ -2,21 +2,31 @@ import { Receipt, Printer, Plus, X } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { translations } from '../lib/translations'
+import { SkeletonRow } from '../components/SkeletonLoader'
+import EmptyState from '../components/EmptyState'
+import Pagination, { usePagination } from '../components/Pagination'
+import { useToast } from '../components/Toast'
+import QRCode from 'qrcode'
 
 export default function Billing({ theme, lang, profile }) {
   const t = translations[lang]
+  const showToast = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [receiptLang, setReceiptLang] = useState(lang)
   const [paymentOrder, setPaymentOrder] = useState(null)
   const [paymentAmount, setPaymentAmount] = useState('')
   const [savingPayment, setSavingPayment] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const receiptRef = useRef()
 
-  useEffect(() => {
-    fetchOrders()
-  }, [])
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const PAGE_SIZE = 10
+
+  useEffect(() => { fetchOrders() }, [])
 
   async function fetchOrders() {
     setLoading(true)
@@ -30,13 +40,13 @@ export default function Billing({ theme, lang, profile }) {
 
   async function recordPayment() {
     const amount = parseFloat(paymentAmount)
-    if (!amount || amount <= 0) return alert('Please enter a valid amount')
+    if (!amount || amount <= 0) return showToast(t.amountReceived + ' is required', 'warning')
 
     const order = paymentOrder
     const balance = order.total_price - order.advance_paid
 
     if (amount > balance) {
-      return alert(`Balance is only ₨${balance}. Cannot pay more than that.`)
+      return showToast(`${t.balance}: ₨${balance}`, 'warning')
     }
 
     setSavingPayment(true)
@@ -48,8 +58,9 @@ export default function Billing({ theme, lang, profile }) {
       .eq('id', order.id)
 
     if (error) {
-      alert('Error: ' + error.message)
+      showToast(error.message, 'error')
     } else {
+      showToast(`${t.confirmPayment} ✓ — ₨${amount.toLocaleString()}`, 'success')
       setPaymentAmount('')
       setPaymentOrder(null)
       fetchOrders()
@@ -57,26 +68,47 @@ export default function Billing({ theme, lang, profile }) {
     setSavingPayment(false)
   }
 
-  function printReceipt(order) {
-    // Update selected order with latest data before printing
+  async function printReceipt(order) {
     setSelectedOrder(order)
+    try {
+      const qrText = order.order_number || `VT-${order.id.slice(0, 8).toUpperCase()}`
+      const url = await QRCode.toDataURL(qrText, {
+        width: 100, margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+      })
+      setQrDataUrl(url)
+    } catch (err) {
+      console.log('QR generation failed:', err)
+      setQrDataUrl('')
+    }
   }
 
-  function doPrint() {
-    const content = receiptRef.current.innerHTML
-    const win = window.open('', '', 'width=400,height=700')
+  const doPrint = () => {
+    const pt = translations[receiptLang] || t
+    const win = window.open('', '', 'width=450,height=800')
     win.document.write(`
       <html>
         <head>
-          <title>Receipt</title>
+          <title>${pt.receipt} — ${selectedOrder.order_number || selectedOrder.id.slice(0, 8)}</title>
           <style>
-            body { font-family: monospace; padding: 24px; font-size: 14px; max-width: 320px; margin: 0 auto; }
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+              padding: 20px; 
+              font-size: 13px; 
+              max-width: 320px; 
+              margin: 0 auto; 
+              color: #1a1a1a;
+              line-height: 1.4;
+            }
             .center { text-align: center; }
-            .bold { font-weight: bold; }
-            .dashed { border-top: 1px dashed #000; margin: 10px 0; }
-            .row { display: flex; justify-content: space-between; margin: 4px 0; }
-            .green { color: green; }
-            .red { color: red; font-weight: bold; }
+            .qr-img { width: 80px; height: 80px; margin: 0 auto; display: block; }
+            .brand { font-size: 16px; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
+            .tagline { font-size: 10px; color: #666; margin: 2px 0; }
+            .receipt-id { font-size: 10px; color: #999; }
+            .total-row { font-size: 14px; font-weight: 900; }
+            @media print { body { max-width: 100%; padding: 4px; } }
           </style>
         </head>
         <body>${content}</body>
@@ -97,30 +129,35 @@ export default function Billing({ theme, lang, profile }) {
     return true
   })
 
+  const { totalPages, getPageItems } = usePagination(filtered, PAGE_SIZE)
+  const paginatedOrders = getPageItems(currentPage)
+
+  useEffect(() => { setCurrentPage(1) }, [filter])
+
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-stone-900 dark:text-white">{t.billing}</h2>
-        <p className="text-stone-400 mt-1">{t.trackPayments || 'Track payments and print receipts'}</p>
+        <h2 className="text-3xl font-bold text-stone-900 dark:text-white">{t.billing}</h2>
+        <p className="text-stone-400 mt-1">{t.trackPayments}</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm dark:shadow-none">
           <p className="text-stone-400 text-sm">{t.totalRevenue}</p>
-          <p className="text-3xl font-black text-stone-900 dark:text-white mt-1">
+          <p className="text-3xl font-semibold text-stone-900 dark:text-white mt-1">
             ₨{totalRevenue.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm dark:shadow-none">
           <p className="text-stone-400 text-sm">{t.paid}</p>
-          <p className="text-3xl font-black text-green-600 dark:text-green-400 mt-1">
+          <p className="text-3xl font-semibold text-green-600 dark:text-green-400 mt-1">
             ₨{totalReceived.toLocaleString()}
           </p>
         </div>
         <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm dark:shadow-none">
           <p className="text-stone-400 text-sm">{t.pendingPayments}</p>
-          <p className="text-3xl font-black text-orange-400 mt-1">
+          <p className="text-3xl font-semibold text-orange-400 mt-1">
             ₨{totalPending.toLocaleString()}
           </p>
         </div>
@@ -130,19 +167,19 @@ export default function Billing({ theme, lang, profile }) {
       <div className="flex gap-2 mb-6">
         {['All', 'Paid', 'Unpaid'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors
               ${filter === f
                 ? 'bg-amber-500 text-stone-950'
                 : 'bg-white dark:bg-stone-900 text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white border border-stone-200 dark:border-stone-800 shadow-sm dark:shadow-none'
               }`}>
-            {f}
+            {f === 'All' ? t.all : f === 'Paid' ? t.paidLabel : t.unpaid}
           </button>
         ))}
       </div>
 
       {/* Orders Table */}
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl mb-8 shadow-sm dark:shadow-none overflow-hidden">
-        <div className="hidden md:grid grid-cols-6 px-6 py-3 border-b border-stone-800 text-stone-500 text-sm font-semibold">
+        <div className="hidden md:grid grid-cols-6 px-6 py-3 border-b border-stone-200 dark:border-stone-800 text-stone-500 text-sm font-medium">
           <span>{t.customer}</span>
           <span>{t.item}</span>
           <span>{t.total}</span>
@@ -152,59 +189,54 @@ export default function Billing({ theme, lang, profile }) {
         </div>
 
         {loading ? (
-          <div className="text-center py-16">
-            <p className="text-stone-500">Loading...</p>
-          </div>
+          <SkeletonRow theme={theme} count={5} cols={6} />
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <Receipt size={40} className="text-stone-700 mx-auto mb-3" />
-            <p className="text-stone-500">No orders found.</p>
-          </div>
+          <EmptyState
+            icon={Receipt}
+            title={t.noOrdersFound}
+            subtitle={t.trackPayments}
+            theme={theme}
+          />
         ) : (
-          filtered.map(order => {
+          paginatedOrders.map(order => {
             const balance = order.total_price - order.advance_paid
             const isPaid = balance <= 0
             return (
               <div key={order.id}
                 className="grid grid-cols-2 md:grid-cols-6 px-6 py-4 border-b border-stone-100 dark:border-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors items-center last:border-0 gap-y-2">
-                <span className="text-stone-900 dark:text-white font-semibold">
+                <span className="text-stone-900 dark:text-white font-medium">
                   {order.customers?.name}
                 </span>
-                <span className="text-stone-300 text-sm">{t.garments[order.item_name] || order.item_name}</span>
-                <span className="text-stone-300">₨{order.total_price}</span>
-                <span className="text-green-400">₨{order.advance_paid}</span>
-                <span className={isPaid
-                  ? 'text-green-400 font-bold'
-                  : 'text-orange-400 font-bold'}>
-                  {isPaid ? '✓ Paid' : `₨${balance}`}
+                <span className="text-stone-600 dark:text-stone-300 text-sm">{t.garments[order.item_name] || order.item_name}</span>
+                <span className="text-stone-600 dark:text-stone-300">₨{(order.total_price || 0).toLocaleString()}</span>
+                <span className="text-green-400">₨{(order.advance_paid || 0).toLocaleString()}</span>
+                <span className={isPaid ? 'text-green-400 font-semibold' : 'text-orange-400 font-semibold'}>
+                  {isPaid ? `✓ ${t.paidLabel}` : `₨${balance.toLocaleString()}`}
                 </span>
 
-                {/* Action Buttons */}
                 <div className="flex gap-2">
-                  {/* Add Payment Button — only show if balance remaining */}
                   {!isPaid && (
                     <button
-                      onClick={() => {
-                        setPaymentOrder(order)
-                        setPaymentAmount('')
-                      }}
-                      className="flex items-center gap-1 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors">
+                      onClick={() => { setPaymentOrder(order); setPaymentAmount('') }}
+                      className="flex items-center gap-1 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors">
                       <Plus size={12} />
-                      Pay
+                      {t.paid}
                     </button>
                   )}
-
-                  {/* Print Receipt Button */}
                   <button
                     onClick={() => printReceipt(order)}
-                    className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-1.5 rounded-lg transition-colors">
+                    className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-semibold px-2 py-1.5 rounded-lg transition-colors">
                     <Printer size={12} />
-                    Print
+                    {t.print}
                   </button>
                 </div>
               </div>
             )
           })
+        )}
+
+        {!loading && filtered.length > PAGE_SIZE && (
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} theme={theme} />
         )}
       </div>
 
@@ -213,80 +245,66 @@ export default function Billing({ theme, lang, profile }) {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-6 w-full max-w-sm">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-stone-900 dark:text-white text-lg">Record Payment</h3>
+              <h3 className="font-semibold text-stone-900 dark:text-white text-lg">{t.recordPayment}</h3>
               <button onClick={() => setPaymentOrder(null)}>
                 <X size={20} className="text-stone-400 hover:text-white" />
               </button>
             </div>
 
-            {/* Order Summary */}
             <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 mb-4">
               <div className="flex justify-between mb-2">
-                <span className="text-stone-400 text-sm">Customer</span>
-                <span className="text-stone-900 dark:text-white font-semibold text-sm">
-                  {paymentOrder.customers?.name}
-                </span>
+                <span className="text-stone-400 text-sm">{t.customer}</span>
+                <span className="text-stone-900 dark:text-white font-medium text-sm">{paymentOrder.customers?.name}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-stone-400 text-sm">Item</span>
-                <span className="text-white text-sm">{t.garments[paymentOrder.item_name] || paymentOrder.item_name}</span>
+                <span className="text-stone-400 text-sm">{t.item}</span>
+                <span className="text-stone-900 dark:text-white text-sm">{t.garments[paymentOrder.item_name] || paymentOrder.item_name}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-stone-400 text-sm">Total Price</span>
-                <span className="text-white text-sm">₨{paymentOrder.total_price}</span>
+                <span className="text-stone-400 text-sm">{t.totalAmount}</span>
+                <span className="text-stone-900 dark:text-white text-sm">₨{(paymentOrder.total_price || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-stone-400 text-sm">Already Paid</span>
-                <span className="text-green-400 text-sm font-semibold">
-                  ₨{paymentOrder.advance_paid}
-                </span>
+                <span className="text-stone-400 text-sm">{t.alreadyPaid}</span>
+                <span className="text-green-400 text-sm font-medium">₨{(paymentOrder.advance_paid || 0).toLocaleString()}</span>
               </div>
-              <div className="border-t border-stone-700 mt-2 pt-2 flex justify-between">
-                <span className="text-stone-300 font-bold text-sm">Remaining Balance</span>
-                <span className="text-orange-400 font-black">
-                  ₨{paymentOrder.total_price - paymentOrder.advance_paid}
+              <div className="border-t border-stone-200 dark:border-stone-700 mt-2 pt-2 flex justify-between">
+                <span className="text-stone-600 dark:text-stone-300 font-semibold text-sm">{t.remainingBalance}</span>
+                <span className="text-orange-400 font-semibold">
+                  ₨{((paymentOrder.total_price || 0) - (paymentOrder.advance_paid || 0)).toLocaleString()}
                 </span>
               </div>
             </div>
 
-            {/* Payment Input */}
             <div className="mb-4">
-              <label className="text-stone-400 text-sm mb-1 block">
-                Amount Received (₨)
-              </label>
-              <input
-                type="number"
-                placeholder={`Max: ₨${paymentOrder.total_price - paymentOrder.advance_paid}`}
+              <label className="text-stone-400 text-sm mb-1 block">{t.amountReceived} (₨)</label>
+              <input type="number"
+                placeholder={`Max: ₨${(paymentOrder.total_price || 0) - (paymentOrder.advance_paid || 0)}`}
                 value={paymentAmount}
                 onChange={e => setPaymentAmount(e.target.value)}
-                className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-lg font-bold"
-              />
-              {/* Quick fill buttons */}
+                className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-lg font-semibold" />
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => setPaymentAmount(String(paymentOrder.total_price - paymentOrder.advance_paid))}
-                  className="flex-1 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold py-1.5 rounded-lg transition-colors">
-                  Full Balance
+                  onClick={() => setPaymentAmount(String((paymentOrder.total_price || 0) - (paymentOrder.advance_paid || 0)))}
+                  className="flex-1 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 text-xs font-semibold py-1.5 rounded-lg transition-colors">
+                  {t.fullBalance}
                 </button>
                 <button
-                  onClick={() => setPaymentAmount(String(Math.round((paymentOrder.total_price - paymentOrder.advance_paid) / 2)))}
-                  className="flex-1 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold py-1.5 rounded-lg transition-colors">
-                  Half
+                  onClick={() => setPaymentAmount(String(Math.round(((paymentOrder.total_price || 0) - (paymentOrder.advance_paid || 0)) / 2)))}
+                  className="flex-1 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 text-xs font-semibold py-1.5 rounded-lg transition-colors">
+                  {t.half}
                 </button>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={recordPayment}
-                disabled={savingPayment}
-                className="flex-1 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors">
-                {savingPayment ? 'Saving...' : '✓ Confirm Payment'}
+              <button onClick={recordPayment} disabled={savingPayment}
+                className="flex-1 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors">
+                {savingPayment ? t.saving : `✓ ${t.confirmPayment}`}
               </button>
-              <button
-                onClick={() => setPaymentOrder(null)}
-                className="flex-1 bg-stone-800 hover:bg-stone-700 text-white font-bold py-3 rounded-xl transition-colors">
-                Cancel
+              <button onClick={() => setPaymentOrder(null)}
+                className="flex-1 bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 text-stone-800 dark:text-white font-semibold py-3 rounded-xl transition-colors">
+                {t.cancel}
               </button>
             </div>
           </div>
@@ -297,118 +315,98 @@ export default function Billing({ theme, lang, profile }) {
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white text-black rounded-2xl p-6 w-full max-w-sm">
-            <div ref={receiptRef}>
-              <div style={{textAlign:'center'}}>
-                <h2 style={{fontSize:'20px', fontWeight:'900', margin:'0'}}>
-                  ✂️ Vastra Track
-                </h2>
-                <p style={{fontSize:'12px', margin:'2px 0'}}>
-                  Professional Tailoring Services
-                </p>
-                <p style={{fontSize:'12px', margin:'2px 0'}}>
-                  Phone: 0300-0000000
-                </p>
+            <div className="mb-6">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest mb-3 text-center">Language / भाषा</p>
+              <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl gap-1">
+                {[
+                  { id: 'en', name: 'EN' },
+                  { id: 'hi', name: 'HI' },
+                  { id: 'mr', name: 'MR' }
+                ].map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => setReceiptLang(l.id)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${receiptLang === l.id ? 'bg-white dark:bg-stone-700 text-amber-600 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>
+                    {l.name}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              <div style={{borderTop:'1px dashed #000', margin:'10px 0'}} />
+            <div style={{ padding: '20px', backgroundColor: '#fdfdfd', borderRadius: '16px', border: '1px solid #eee' }}>
+              <div style={{ maxWidth: '280px', margin: '0 auto', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#000' }}>
+                <div style={{ textAlign: 'center' }}>
+                  {profile?.logo_url && (
+                    <img src={profile.logo_url} alt="Logo"
+                      style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', margin: '0 auto 6px', display: 'block' }} />
+                  )}
+                  <h2 style={{ fontSize: '18px', fontWeight: '800', margin: '0', letterSpacing: '-0.5px' }}>
+                    ✂️ {profile?.brand_name || 'Vastra Track'}
+                  </h2>
+                  <p style={{ fontSize: '10px', color: '#666', margin: '2px 0', textTransform: 'uppercase', fontWeight: '600' }}>{translations[receiptLang]?.professionalServices}</p>
+                </div>
 
-              <div style={{fontSize:'13px'}}>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'3px 0'}}>
-                  <span>Receipt #:</span>
-                  <span style={{fontWeight:'bold'}}>
-                    {selectedOrder.id.slice(0,8).toUpperCase()}
-                  </span>
+                <div style={{ borderTop: '2px dashed #eee', margin: '12px 0' }} />
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span>{translations[receiptLang]?.receiptNo}</span>
+                    <span style={{ fontWeight: 'bold', background: '#000', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>{selectedOrder.order_number || selectedOrder.id.slice(0, 8).toUpperCase()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span>{translations[receiptLang]?.date}:</span>
+                    <span>{new Date().toLocaleDateString('en-IN')}</span>
+                  </div>
                 </div>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'3px 0'}}>
-                  <span>Date:</span>
-                  <span>{new Date().toLocaleDateString()}</span>
+
+                <div style={{ borderTop: '2px dashed #eee', margin: '12px 0' }} />
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span>{translations[receiptLang]?.customer}:</span>
+                    <span style={{ fontWeight: 'bold' }}>{selectedOrder.customers?.name}</span>
+                  </div>
                 </div>
-                {selectedOrder.due_date && (
-                  <div style={{display:'flex', justifyContent:'space-between', margin:'3px 0'}}>
-                    <span>Due Date:</span>
-                    <span>{selectedOrder.due_date}</span>
+
+                <div style={{ borderTop: '2px dashed #eee', margin: '12px 0' }} />
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '4px 0' }}>
+                    <span style={{ fontWeight: 'bold' }}>{translations[receiptLang]?.garments[selectedOrder.item_name] || selectedOrder.item_name}</span>
+                    <span style={{ fontWeight: 'bold' }}>₨{(selectedOrder.total_price || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '2px dashed #eee', margin: '12px 0' }} />
+                <div style={{ fontSize: '11px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', margin: '6px 0', fontSize: '14px' }}>
+                    <span style={{ fontWeight: 'bold' }}>{translations[receiptLang]?.balanceDue}:</span>
+                    <span style={{
+                      color: (selectedOrder.total_price || 0) - (selectedOrder.advance_paid || 0) <= 0 ? '#16a34a' : '#dc2626',
+                      fontWeight: '800'
+                    }}>
+                      ₨{((selectedOrder.total_price || 0) - (selectedOrder.advance_paid || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {qrDataUrl && (
+                  <div style={{ textAlign: 'center', margin: '15px 0' }}>
+                    <img src={qrDataUrl} alt="QR Code" style={{ width: '70px', height: '70px', margin: '0 auto', display: 'block' }} />
+                    <p style={{ fontSize: '8px', color: '#999', marginTop: '4px' }}>{translations[receiptLang]?.scanQr}</p>
                   </div>
                 )}
+                
+                <p style={{ textAlign: 'center', fontSize: '10px', margin: '15px 0 0', color: '#666', fontWeight: '600' }}>{translations[receiptLang]?.thanksMessage} 🙏</p>
               </div>
-
-              <div style={{borderTop:'1px dashed #000', margin:'10px 0'}} />
-
-              <div style={{fontSize:'13px'}}>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'3px 0'}}>
-                  <span>Customer:</span>
-                  <span style={{fontWeight:'bold'}}>
-                    {selectedOrder.customers?.name}
-                  </span>
-                </div>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'3px 0'}}>
-                  <span>Phone:</span>
-                  <span>{selectedOrder.customers?.phone || '—'}</span>
-                </div>
-              </div>
-
-              <div style={{borderTop:'1px dashed #000', margin:'10px 0'}} />
-
-              <div style={{fontSize:'13px'}}>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'3px 0'}}>
-                  <span>{selectedOrder.item_name}</span>
-                  <span>₨{selectedOrder.total_price}</span>
-                </div>
-                {selectedOrder.fabric && (
-                  <div style={{fontSize:'11px', color:'#666', margin:'2px 0'}}>
-                    Fabric: {selectedOrder.fabric}
-                  </div>
-                )}
-                {selectedOrder.notes && (
-                  <div style={{fontSize:'11px', color:'#666', margin:'2px 0'}}>
-                    Notes: {selectedOrder.notes}
-                  </div>
-                )}
-              </div>
-
-              <div style={{borderTop:'1px dashed #000', margin:'10px 0'}} />
-
-              <div style={{fontSize:'13px'}}>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'4px 0'}}>
-                  <span>Total Amount:</span>
-                  <span style={{fontWeight:'bold'}}>₨{selectedOrder.total_price}</span>
-                </div>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'4px 0'}}>
-                  <span>Total Paid:</span>
-                  <span style={{color:'green', fontWeight:'bold'}}>
-                    ₨{selectedOrder.advance_paid}
-                  </span>
-                </div>
-                <div style={{display:'flex', justifyContent:'space-between', margin:'4px 0', fontSize:'15px'}}>
-                  <span style={{fontWeight:'bold'}}>Balance Due:</span>
-                  <span style={{
-                    color: selectedOrder.total_price - selectedOrder.advance_paid <= 0 ? 'green' : 'red',
-                    fontWeight:'900'
-                  }}>
-                    {selectedOrder.total_price - selectedOrder.advance_paid <= 0
-                      ? '✓ FULLY PAID'
-                      : `₨${selectedOrder.total_price - selectedOrder.advance_paid}`
-                    }
-                  </span>
-                </div>
-              </div>
-
-              <div style={{borderTop:'1px dashed #000', margin:'10px 0'}} />
-              <p style={{textAlign:'center', fontSize:'12px', margin:'0'}}>
-                Thank you for your business! 🙏
-              </p>
             </div>
 
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={doPrint}
-                className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold py-2.5 rounded-xl transition-colors">
+              <button onClick={doPrint}
+                className="flex-1 flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-semibold py-2.5 rounded-xl transition-colors">
                 <Printer size={16} />
-                Print
+                {t.print}
               </button>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-900 font-bold py-2.5 rounded-xl transition-colors">
-                Close
+              <button onClick={() => { setSelectedOrder(null); setQrDataUrl('') }}
+                className="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-900 font-semibold py-2.5 rounded-xl transition-colors">
+                {t.close}
               </button>
             </div>
           </div>
